@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+.aws-sam/
+
+# Local env / secrets — never commit (repo is public)
+.env
+.env.*
+!config/*.env.example
+
+# Editor / OS
+.DS_Store
+*.log
+
+.claude/
