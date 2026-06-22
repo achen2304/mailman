@@ -4,6 +4,9 @@ Breaks `plan.md` into dependency-ordered, independently-testable parts. Each par
 **Done when** gate that is green/CI-checkable before the next part starts. Parts within a
 track marked _(parallel)_ have no dependency on each other.
 
+> **Progress:** ✅ A0 · ✅ B1 B2 B3 B4 · ✅ C1 C2 — _Tracks A–C done; 68 tests, src/lib 100% coverage._
+> ⏳ Next: **D1** (auth) → D2 → D3 → D4.
+
 > **Note vs. plan.md:** `escapeHtml` / `sanitizeEmailHeader` are described in the plan as
 > "ported from `send-email/route.ts`". The real existing sender (`chardle/frontend/api/send-email.js`)
 > has **neither** helper (it interpolates user input directly into HTML) and uses **Zoho SMTP, not
@@ -40,7 +43,7 @@ Three tiers, unlocking at different points:
   but `module`/`moduleResolution` → `NodeNext`, `target` `es2022`), `eslint.config.mjs` +
   `.prettierrc` (copy backend), `jest.config.js` (ts-jest **ESM** preset), Husky + lint-staged,
   folder skeleton from plan, `.gitignore` (`.env`, `dist`, `.aws-sam`).
-- **Deps installed:** `hono`, `nodemailer`, `@aws-sdk/client-ses`, `@aws-sdk/client-ssm`, `zod`;
+- **Deps installed:** `hono`, `nodemailer` (8.x), `@aws-sdk/client-sesv2`, `@aws-sdk/client-ssm`, `zod` (v4);
   dev: `@types/nodemailer`, `@types/aws-lambda`, `jest`, `ts-jest`, `aws-sdk-client-mock`, `dotenv`.
 - **Tests:** one trivial passing spec.
 - **Done when:** `npm run typecheck && npm run lint && npm test` all green on an otherwise empty repo.
@@ -93,8 +96,8 @@ Three tiers, unlocking at different points:
 - **Done when:** config + error tests green; standalone-boot (no Supabase env) proven.
 
 ### C2 — SES transport & ports _(depends on A0; uses B-types)_
-- **Files:** `lib/ses.ts` (nodemailer SES transport over `@aws-sdk/client-ses`, `send(rawMime)`,
-  injects `List-Unsubscribe`/`-Post` + optional `X-SES-CONFIGURATION-SET`), `lib/suppression.ts`
+- **Files:** `lib/ses.ts` (nodemailer 8 SESv2 transport over `@aws-sdk/client-sesv2`, raw-MIME send,
+  injects `List-Unsubscribe`/`-Post` + optional native `ConfigurationSetName`), `lib/suppression.ts`
   (port + **default impl**: `isSuppressed`→`false`, send path catches SES `MessageRejected`;
   `suppress`→no-op), `lib/resolver.ts` (`RecipientResolver` port; default = none).
 - **Tests:** `ses.ts` builds correct multipart MIME + headers with mocked transport
@@ -155,7 +158,7 @@ Three tiers, unlocking at different points:
 ### F1 — SAM template _(depends on D2, D3)_
 - **File:** `template.yaml` — HttpApi (rate+burst throttle) + SendFunction + SesEventsFunction + SNS
   topic; `nodejs22.x`/`arm64`; esbuild (`Format: esm`, `Target: es2022`); IAM least-priv:
-  `ses:SendRawEmail`, `ssm:GetParameters*` on `/mailman/*`.
+  `ses:SendEmail` (SESv2 — **not** `ses:SendRawEmail`), `ssm:GetParameters*` on `/mailman/*`.
 - **Done when:** `sam validate` + `sam build` succeed; `sam local start-api` serves `/v1/send`.
 
 ### F2 — CI/CD (GitHub OIDC) _(depends on F1, all test tracks)_
