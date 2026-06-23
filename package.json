@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "dev": "tsx watch src/dev-server.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/ tests/",
     "lint:fix": "eslint src/ tests/ --fix",
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@hono/node-server": "^1.13.0",
     "@jest/globals": "^30.0.5",
     "@types/aws-lambda": "^8.10.0",
     "@types/jest": "^30.0.0",

@@ -89,3 +89,37 @@ export function isSuppressedRecipientError(err: unknown): boolean {
   }
   return (err as { name?: unknown }).name === 'MessageRejected';
 }
+
+const TRANSIENT_SES_ERROR_NAMES = new Set([
+  'ThrottlingException',
+  'Throttling',
+  'TooManyRequestsException',
+  'ServiceUnavailable',
+  'ServiceUnavailableException',
+  'RequestTimeout',
+  'TimeoutError',
+]);
+
+/**
+ * True if a SES error is transient (throttling / 5xx / SDK-retryable), meaning the
+ * caller may safely retry → the route returns 5xx. Permanent failures instead
+ * return 200 to avoid caller retry storms.
+ */
+export function isTransientSesError(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) {
+    return false;
+  }
+  const e = err as {
+    name?: unknown;
+    $retryable?: unknown;
+    $metadata?: { httpStatusCode?: number };
+  };
+  if (typeof e.name === 'string' && TRANSIENT_SES_ERROR_NAMES.has(e.name)) {
+    return true;
+  }
+  if (e.$retryable) {
+    return true;
+  }
+  const status = e.$metadata?.httpStatusCode;
+  return typeof status === 'number' && status >= 500;
+}

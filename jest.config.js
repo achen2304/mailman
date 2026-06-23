@@ -21,6 +21,7 @@ export default {
     '!src/**/*.d.ts',
     '!src/handler.ts',
     '!src/dev-server.ts',
+    '!src/bootstrap.ts',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
